@@ -13,28 +13,33 @@ auth = tweepy.OAuthHandler(key, secret)
 auth.set_access_token(access_key,access_secret)
 twitter = tweepy.API(auth)
 
-def gen_title():
-    cat = random.choice(list(categories.keys()))
+def get_entries(cat):
     feed = feedparser.parse(ARXIV_BASE+cat)
-    if feed.entries is not None:
-        entry = random.choice(feed.entries)
-        entries.append({'cat':cat,'id':entry.id})
-        with open(os.path.join(os.path.dirname(__file__),'entries.json'),'w') as f:
-            json.dump(entries,f,indent=2)
-        title = entry.title.split(' (')[0]
-        t = TextBlob(title)
-        phrases = [phrase for phrase in t.noun_phrases if not 'quantum' in phrase]
-        title = title.title()
-        for pick in phrases:
-            new = ' '.join(pick.split(' ')[:-1])
-            new += ' quantum ' + pick.split(' ')[-1]
-            title = title.replace(pick.title(),new.title())
-            return title
-    return None
+    if feed.entries is not None and not feed.bozo:
+        return feed.entries
+    else:
+        return None
+
+def gen_title(entry):
+    title = entry.title.split(' (')[0]
+    print(title)
+    t = TextBlob(title)
+    phrases = [phrase for phrase in t.noun_phrases if not 'quantum' in phrase]
+    print(phrases)
+    title = title.title()
+    for pick in phrases:
+        if len(pick.split(' ')) > 2:
+            new_phrase = 'quantum ' + pick
+        else:
+            new_phrase = ' '.join(pick.split(' ')[:-1])
+            new_phrase += ' quantum ' + pick.split(' ')[-1]
+        title = title.replace(pick.title(),new_phrase.title())
+    print(title)
+    return title
 
 if __name__ == '__main__':
     with open(os.path.join(os.path.dirname(__file__),'entries.json'),'r') as f:
-        entries = json.load(f)
+        old_entries = json.load(f)
     data = {'params': {'replacement': True, 'n': 1, 'decimalPlaces': 20,
                        'apiKey':RANDOM_KEY},
             'method': 'generateDecimalFractions', 'id': 1615, 'jsonrpc': '2.0'}
@@ -42,9 +47,21 @@ if __name__ == '__main__':
                       data=json.dumps(data), headers={'content-type':
                                                       'application/json'})
     rand = r.json()['result']['random']['data'][0]
-    print(rand)
-    while True:
-        title = gen_title()
-        if title is not None and len(title) < 140:
-            twitter.update_status(title)
-            break
+    cats = list(categories.keys())
+    random.shuffle(cats)
+    for cat in cats:
+        print(cat)
+        entries = get_entries(cat)
+        if entries is None:
+            continue
+        random.shuffle(entries)
+        for entry in entries:
+            print('Doing one')
+            new_title = gen_title(entry)
+            if new_title != entry.title and len(new_title)<140:
+                twitter.update_status(new_title)
+                old_entries.append({'id':entry.id,'cat':cat})
+                with open(os.path.join(os.path.dirname(__file__),
+                                       'entries.json'),'w') as f:
+                    json.dump(old_entries,f,indent=2)
+                exit()

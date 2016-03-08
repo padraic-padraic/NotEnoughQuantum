@@ -1,6 +1,10 @@
 [
-    {
-        "id": "http://arxiv.org/abs/1603.01293",
-        "cat": "quant-ph"
-    }
+  {
+    "id": "http://arxiv.org/abs/1603.01846",
+    "cat": "q-bio.SC"
+  },
+  {
+    "id": "http://arxiv.org/abs/1603.01628",
+    "cat": "hep-th"
+  }
 ]
