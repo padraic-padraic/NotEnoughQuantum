@@ -55,11 +55,17 @@ if __name__ == '__main__':
         if entries is None:
             continue
         random.shuffle(entries)
+        old = [ent['id'] for ent in old_entries if ent['cat'] == cat]
         for entry in entries:
+            if entry.id in old:
+                continue
             print('Doing one')
             new_title = gen_title(entry)
             if new_title != entry.title and len(new_title)<140:
-                twitter.update_status(new_title)
+                try:
+                    twitter.update_status(new_title + ' '+entry.id)
+                except:
+                    twitter.update_status(new_title)
                 old_entries.append({'id':entry.id,'cat':cat})
                 with open(os.path.join(os.path.dirname(__file__),
                                        'entries.json'),'w') as f:
